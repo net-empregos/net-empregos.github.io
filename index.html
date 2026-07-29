@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Escolher arquivo</title>
+</head>
+
+<body>
+
+<button onclick="baixar()">Abrir arquivo</button>
+
+<script>
+
+async function baixar(){
+
+    let resposta = await fetch("arquivos/lista.json");
+
+    let arquivos = await resposta.json();
+
+    let escolhido =
+        arquivos[Math.floor(Math.random() * arquivos.length)];
+
+    window.location.href =
+        "arquivos/" + escolhido;
+}
+
+</script>
+
+</body>
+</html>
